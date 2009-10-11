@@ -2,7 +2,7 @@
 /*
 Plugin Name: Sitewide newsletters
 Description: Allows site administrators to send a newsletter to all users
-Version: 0.1
+Version: 0.2
 Author: Chris Taylor
 Author URI: http://www.stillbreathing.co.uk
 Plugin URI: http://www.stillbreathing.co.uk/projects/mu-sitewide-newsletters/
@@ -23,12 +23,12 @@ function sitewide_newsletters()
 	$users = $wpdb->get_var( "select count(user_email) from ".$wpdb->users." where user_activation_key = '' and spam = 0 and deleted = 0" );
 	
 	// if sending a newsletter
-	if ( @$_POST["newsletter"] != "" && @$_POST["subject"] != "" )
+	if ( @$_POST["newsletter"] != "" && @$_POST["subject"] != "" && @$_POST["fromname"] != "" && @$_POST["fromemail"] != "" )
 	{
 		$newsletter = stripslashes( trim( $_POST["newsletter"] ) );
 		$subject = stripslashes( trim( $_POST["subject"] ) );
 		
-		$message_headers = 'From: "' . get_site_option("site_name") . '" <' . get_site_option("admin_email") . '>' . "\r\n" .
+		$message_headers = 'From: "' . addslashes($_POST["fromname"]) . '" <' . addslashes($_POST["fromemail"]) . '>' . "\r\n" .
 		'Reply-To: ' . get_site_option("admin_email") . '' . "\r\n" .
 		'X-Mailer: PHP/' . phpversion();
 		
@@ -75,13 +75,17 @@ function sitewide_newsletters()
 	
 	' . $message . '
 	
-	<p>Enter your newsletter below which will be emailed to ' . $users . ' users. The email will appear to the recipient as coming from "' . get_site_option("site_name") . ' &lt;' . get_site_option("admin_email") . '&gt;".</p>
+	<p>Enter your newsletter below which will be emailed to ' . $users . ' users.</p>
 	
 	<form action="wpmu-admin.php?page=sitewide_newsletters" method="post">
 	
 		<fieldset>
 		
 		<legend>Send a newsletter</legend>
+		
+		<p><label for="fromname" style="float: left;width: 15%;">From name</label><input type="text" name="fromname" id="fromname" style="width: 80%" value="' . get_site_option("site_name") . '" /></p>
+		
+		<p><label for="fromemail" style="float: left;width: 15%;">From email</label><input type="text" name="fromemail" id="fromemail" style="width: 80%" value="' . get_site_option("admin_email") . '" /></p>
 			
 		<p><label for="subject" style="float: left;width: 15%;">Subject</label><input type="text" name="subject" id="subject" style="width: 80%" /></p>
 			

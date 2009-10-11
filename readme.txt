@@ -4,7 +4,7 @@ Donate link: http://www.stillbreathing.co.uk/donate/
 Tags: wordpress mu, personal, welcome, email, message, greet
 Requires at least: 2.7
 Tested up to: 2.7.1
-Stable tag: 0.1
+Stable tag: 0.2
 
 Sitewide Newsletters is a Wordpress MU plugin that allows site administrators to send an email message to all users.
 
@@ -31,3 +31,8 @@ To scratch my own itch when developing [BeatsBase.com](http://beatsbase.com "Fre
 == Screenshots ==
 
 1. The newsletter form
+
+== Changelog ==
+
+0.2 Added from name and from email form fields
+0.1 Initial version
