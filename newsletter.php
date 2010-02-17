@@ -2,7 +2,7 @@
 /*
 Plugin Name: Sitewide newsletters
 Description: Allows site administrators to send a newsletter to all users
-Version: 0.2
+Version: 0.3
 Author: Chris Taylor
 Author URI: http://www.stillbreathing.co.uk
 Plugin URI: http://www.stillbreathing.co.uk/projects/mu-sitewide-newsletters/
@@ -70,7 +70,9 @@ function sitewide_newsletters()
 	
 	print '
 	<div class="wrap">
-	
+	';
+	sitewide_newsletters_wp_plugin_standard_header( "GBP", "Sitewide Newsletter", "Chris Taylor", "chris@stillbreathing.co.uk", "http://wordpress.org/extend/plugins/sitewide-newsletter/" );
+	print '
 	<h2>Sitewide Newsletter</h2>
 	
 	' . $message . '
@@ -98,8 +100,96 @@ function sitewide_newsletters()
 		</fieldset>
 
 	</form>
-	
+	';
+	sitewide_newsletters_wp_plugin_standard_footer( "GBP", "Sitewide Newsletter", "Chris Taylor", "chris@stillbreathing.co.uk", "http://wordpress.org/extend/plugins/sitewide-newsletter/" );
+	print '
 	</div>
 	';
+}
+
+// a standard header for your plugins, offers a PayPal donate button and link to a support page
+function sitewide_newsletters_wp_plugin_standard_header( $currency = "", $plugin_name = "", $author_name = "", $paypal_address = "", $bugs_page ) {
+	$r = "";
+	$option = get_option( $plugin_name . " header" );
+	if ( $_GET[ "header" ] != "" || $_GET["thankyou"] == "true" ) {
+		update_option( $plugin_name . " header", "hide" );
+		$option = "hide";
+	}
+	if ( $_GET["thankyou"] == "true" ) {
+		$r .= '<div class="updated"><p>' . __( "Thank you for donating" ) . '</p></div>';
+	}
+	if ( $currency != "" && $plugin_name != "" && $_GET[ "header" ] != "hide" && $option != "hide" )
+	{
+		$r .= '<div class="updated">';
+		$pageURL = 'http';
+		if ( $_SERVER["HTTPS"] == "on" ) { $pageURL .= "s"; }
+		$pageURL .= "://";
+		if ( $_SERVER["SERVER_PORT"] != "80" ) {
+			$pageURL .= $_SERVER["SERVER_NAME"] . ":" . $_SERVER["SERVER_PORT"] . $_SERVER["REQUEST_URI"];
+		} else {
+			$pageURL .= $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"];
+		}
+		if ( strpos( $pageURL, "?") === false ) {
+			$pageURL .= "?";
+		} else {
+			$pageURL .= "&";
+		}
+		$pageURL = htmlspecialchars( $pageURL );
+		if ( $bugs_page != "" ) {
+			$r .= '<p>' . sprintf ( __( 'To report bugs please visit <a href="%s">%s</a>.' ), $bugs_page, $bugs_page ) . '</p>';
+		}
+		if ( $paypal_address != "" && is_email( $paypal_address ) ) {
+			$r .= '
+			<form id="wp_plugin_standard_header_donate_form" action="https://www.paypal.com/cgi-bin/webscr" method="post">
+			<input type="hidden" name="cmd" value="_donations" />
+			<input type="hidden" name="item_name" value="Donation: ' . $plugin_name . '" />
+			<input type="hidden" name="business" value="' . $paypal_address . '" />
+			<input type="hidden" name="no_note" value="1" />
+			<input type="hidden" name="no_shipping" value="1" />
+			<input type="hidden" name="rm" value="1" />
+			<input type="hidden" name="currency_code" value="' . $currency . '">
+			<input type="hidden" name="return" value="' . $pageURL . 'thankyou=true" />
+			<input type="hidden" name="bn" value="PP-DonationsBF:btn_donateCC_LG.gif:NonHosted" />
+			<p>';
+			if ( $author_name != "" ) {
+				$r .= sprintf( __( 'If you found %1$s useful please consider donating to help %2$s to continue writing free Wordpress plugins.' ), $plugin_name, $author_name );
+			} else {
+				$r .= sprintf( __( 'If you found %s useful please consider donating.' ), $plugin_name );
+			}
+			$r .= '
+			<p><input type="image" src="https://www.paypal.com/en_US/i/btn/btn_donate_LG.gif" border="0" name="submit" alt="" /></p>
+			</form>
+			';
+		}
+		$r .= '<p><a href="' . $pageURL . 'header=hide" class="button">' . __( "Hide this" ) . '</a></p>';
+		$r .= '</div>';
+	}
+	print $r;
+}
+function sitewide_newsletters_wp_plugin_standard_footer( $currency = "", $plugin_name = "", $author_name = "", $paypal_address = "", $bugs_page ) {
+	$r = "";
+	if ( $currency != "" && $plugin_name != "" )
+	{
+		$r .= '<form id="wp_plugin_standard_footer_donate_form" action="https://www.paypal.com/cgi-bin/webscr" method="post" style="clear:both;padding-top:50px;"><p>';
+		if ( $bugs_page != "" ) {
+			$r .= sprintf ( __( '<a href="%s">Bugs</a>' ), $bugs_page );
+		}
+		if ( $paypal_address != "" && is_email( $paypal_address ) ) {
+			$r .= '
+			<input type="hidden" name="cmd" value="_donations" />
+			<input type="hidden" name="item_name" value="Donation: ' . $plugin_name . '" />
+			<input type="hidden" name="business" value="' . $paypal_address . '" />
+			<input type="hidden" name="no_note" value="1" />
+			<input type="hidden" name="no_shipping" value="1" />
+			<input type="hidden" name="rm" value="1" />
+			<input type="hidden" name="currency_code" value="' . $currency . '">
+			<input type="hidden" name="return" value="' . $pageURL . 'thankyou=true" />
+			<input type="hidden" name="bn" value="PP-DonationsBF:btn_donateCC_LG.gif:NonHosted" />
+			<input type="image" src="https://www.paypal.com/en_US/i/btn/btn_donate_SM.gif" border="0" name="submit" alt="' . __( "Donate" ) . ' ' . $plugin_name . '" />
+			';
+		}
+		$r .= '</p></form>';
+	}
+	print $r;
 }
 ?>
