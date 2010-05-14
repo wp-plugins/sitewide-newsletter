@@ -2,10 +2,10 @@
 /*
 Plugin Name: Sitewide newsletters
 Description: Allows site administrators to send a newsletter to all users
-Version: 0.3
+Version: 0.3.1
 Author: Chris Taylor
 Author URI: http://www.stillbreathing.co.uk
-Plugin URI: http://www.stillbreathing.co.uk/projects/mu-sitewide-newsletters/
+Plugin URI: http://www.stillbreathing.co.uk/wordpress/sitewide-newsletter/
 */
 // when the admin menu is built
 add_action('admin_menu', 'sitewide_newsletters_add_admin');
@@ -25,46 +25,62 @@ function sitewide_newsletters()
 	// if sending a newsletter
 	if ( @$_POST["newsletter"] != "" && @$_POST["subject"] != "" && @$_POST["fromname"] != "" && @$_POST["fromemail"] != "" )
 	{
-		$newsletter = stripslashes( trim( $_POST["newsletter"] ) );
-		$subject = stripslashes( trim( $_POST["subject"] ) );
-		
-		$message_headers = 'From: "' . addslashes($_POST["fromname"]) . '" <' . addslashes($_POST["fromemail"]) . '>' . "\r\n" .
-		'Reply-To: ' . get_site_option("admin_email") . '' . "\r\n" .
-		'X-Mailer: PHP/' . phpversion();
-		
-		$emails = $wpdb->get_results( "select user_email from ".$wpdb->users." where user_activation_key = '' and spam = 0 and deleted = 0" );
-		
-		$failed = "";
-		$sent = 0;
-		
-		if (@$_POST["test"] == "")
-		{
-		
-			foreach ($emails as $email)
+		try {
+	
+			$newsletter = stripslashes( trim( $_POST["newsletter"] ) );
+			$subject = stripslashes( trim( $_POST["subject"] ) );
+			
+			$message_headers = 'From: "' . addslashes($_POST["fromname"]) . '" <' . addslashes($_POST["fromemail"]) . '>' . "\r\n" .
+			'Reply-To: ' . get_site_option("admin_email") . '' . "\r\n" .
+			'X-Mailer: PHP/' . phpversion();
+			
+			$emails = $wpdb->get_results( "select user_email from ".$wpdb->users." where user_activation_key = '' and spam = 0 and deleted = 0" );
+			
+			$failed = "";
+			$sent = 0;
+			
+			if (@$_POST["test"] == "")
 			{
-				$e = $email->user_email;
-				if ( wp_mail( $e, $subject, $newsletter, $message_headers ) )
+			
+				foreach ($emails as $email)
+				{
+					try {
+				
+						$e = $email->user_email;
+						if ( wp_mail( $e, $subject, $newsletter, $message_headers ) )
+						{
+							$sent++;
+						} else {
+							$failed .= $e . "\r\n";
+						}
+					
+					} catch (Exception $e) {
+		
+						$failed .= "Error with " . $e . ": " . $e->getMessage() . "\r\n";
+					
+					}
+				}
+				
+			} else {
+			
+				if ( wp_mail( get_site_option("admin_email"), $subject, $newsletter, $message_headers ) )
 				{
 					$sent++;
 				} else {
 					$failed .= $e . "\r\n";
 				}
+			
+			}
+			$message = "<p>Your message has been sent to " . $sent . " email addresses (" . $users . " users in total).</p>";
+			if ($failed != "")
+			{
+				$message .= '<p>Failed addresses:</p><p><textarea cols="30" rows="12">' . $failed . '</textarea></p>';
 			}
 			
-		} else {
+		} catch (Exception $e) {
 		
-			if ( wp_mail( get_site_option("admin_email"), $subject, $newsletter, $message_headers ) )
-			{
-				$sent++;
-			} else {
-				$failed .= $e . "\r\n";
-			}
+			$message = "<p>An error was encountered: " . $e->getMessage() . "</p>";
 		
-		}
-		$message = "<p>Your message has been sent to " . $sent . " email addresses (" . $users . " users in total).</p>";
-		if ($failed != "")
-		{
-			$message .= '<p>Failed addresses:</p><p><textarea cols="30" rows="12">' . $failed . '</textarea></p>';
 		}
 	}
 	
