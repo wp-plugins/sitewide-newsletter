@@ -2,7 +2,7 @@
 /*
 Plugin Name: Sitewide newsletters
 Description: Allows site administrators to send a newsletter to all users
-Version: 0.3.1
+Version: 0.3.2
 Author: Chris Taylor
 Author URI: http://www.stillbreathing.co.uk
 Plugin URI: http://www.stillbreathing.co.uk/wordpress/sitewide-newsletter/
@@ -13,7 +13,11 @@ add_action('admin_menu', 'sitewide_newsletters_add_admin');
 // add the admin newsletters button
 function sitewide_newsletters_add_admin() {
 	global $current_user;
-	add_submenu_page('wpmu-admin.php', 'Sitewide newsletters', 'Sitewide newsletters', 10, 'sitewide_newsletters', 'sitewide_newsletters');
+	if (version_compare(get_bloginfo('version'), "3") >= 0)	{
+		add_submenu_page('ms-admin.php', 'Sitewide newsletters', 'Sitewide newsletters', 'edit_users', 'sitewide_newsletters', 'sitewide_newsletters');
+	} else {
+		add_submenu_page('wpmu-admin.php', 'Sitewide newsletters', 'Sitewide newsletters', 'edit_users', 'sitewide_newsletters', 'sitewide_newsletters');
+	}
 }
 
 // build the newsletters form
@@ -21,6 +25,13 @@ function sitewide_newsletters()
 {
 	global $current_user, $wpdb;
 	$users = $wpdb->get_var( "select count(user_email) from ".$wpdb->users." where user_activation_key = '' and spam = 0 and deleted = 0" );
+	
+	$message = "";
+	
+	$wpmums = "wpmu";
+	if (version_compare(get_bloginfo('version'), "3") >= 0)	{
+			$wpmums = "ms";
+	}
 	
 	// if sending a newsletter
 	if ( @$_POST["newsletter"] != "" && @$_POST["subject"] != "" && @$_POST["fromname"] != "" && @$_POST["fromemail"] != "" )
@@ -34,13 +45,13 @@ function sitewide_newsletters()
 			'Reply-To: ' . get_site_option("admin_email") . '' . "\r\n" .
 			'X-Mailer: PHP/' . phpversion();
 			
-			$emails = $wpdb->get_results( "select user_email from ".$wpdb->users." where user_activation_key = '' and spam = 0 and deleted = 0" );
-			
 			$failed = "";
 			$sent = 0;
 			
 			if (@$_POST["test"] == "")
 			{
+			
+				$emails = $wpdb->get_results( "select user_email from ".$wpdb->users." where user_activation_key = '' and spam = 0 and deleted = 0" );
 			
 				foreach ($emails as $email)
 				{
@@ -62,12 +73,22 @@ function sitewide_newsletters()
 				}
 				
 			} else {
+
+				$email = get_site_option("admin_email");
 			
-				if ( wp_mail( get_site_option("admin_email"), $subject, $newsletter, $message_headers ) )
-				{
-					$sent++;
-				} else {
-					$failed .= $e . "\r\n";
+				try {
+				
+					if ( wp_mail( $email, $subject, $newsletter, $message_headers ) ) {
+
+						$sent++;
+					} else {
+						$failed .= "Error: test message could not be sent to " . $email . "\r\n";			
+					}
+					
+				} catch (Exception $e) {
+
+					$failed .= "Error sending to " . $email . ": " . $e->getMessage() . "\r\n";
+				
 				}
 			
 			}
@@ -95,7 +116,7 @@ function sitewide_newsletters()
 	
 	<p>Enter your newsletter below which will be emailed to ' . $users . ' users.</p>
 	
-	<form action="wpmu-admin.php?page=sitewide_newsletters" method="post">
+	<form action="'.$wpmums.'-admin.php?page=sitewide_newsletters" method="post">
 	
 		<fieldset>
 		
@@ -127,18 +148,18 @@ function sitewide_newsletters()
 function sitewide_newsletters_wp_plugin_standard_header( $currency = "", $plugin_name = "", $author_name = "", $paypal_address = "", $bugs_page ) {
 	$r = "";
 	$option = get_option( $plugin_name . " header" );
-	if ( $_GET[ "header" ] != "" || $_GET["thankyou"] == "true" ) {
+	if ( ( isset( $_GET[ "header" ] ) && $_GET[ "header" ] != "" ) || ( isset( $_GET[ "thankyou" ] ) && $_GET["thankyou"] == "true" ) ) {
 		update_option( $plugin_name . " header", "hide" );
 		$option = "hide";
 	}
-	if ( $_GET["thankyou"] == "true" ) {
+	if ( isset( $_GET["thankyou"] ) && $_GET["thankyou"] == "true" ) {
 		$r .= '<div class="updated"><p>' . __( "Thank you for donating" ) . '</p></div>';
 	}
-	if ( $currency != "" && $plugin_name != "" && $_GET[ "header" ] != "hide" && $option != "hide" )
+	if ( $currency != "" && $plugin_name != "" && ( !isset( $_GET[ "header" ] ) || $_GET[ "header" ] != "hide" ) && $option != "hide" )
 	{
 		$r .= '<div class="updated">';
 		$pageURL = 'http';
-		if ( $_SERVER["HTTPS"] == "on" ) { $pageURL .= "s"; }
+		if ( isset( $_SERVER["HTTPS"] ) && $_SERVER["HTTPS"] == "on" ) { $pageURL .= "s"; }
 		$pageURL .= "://";
 		if ( $_SERVER["SERVER_PORT"] != "80" ) {
 			$pageURL .= $_SERVER["SERVER_NAME"] . ":" . $_SERVER["SERVER_PORT"] . $_SERVER["REQUEST_URI"];
@@ -187,6 +208,20 @@ function sitewide_newsletters_wp_plugin_standard_footer( $currency = "", $plugin
 	if ( $currency != "" && $plugin_name != "" )
 	{
 		$r .= '<form id="wp_plugin_standard_footer_donate_form" action="https://www.paypal.com/cgi-bin/webscr" method="post" style="clear:both;padding-top:50px;"><p>';
+		$pageURL = 'http';
+		if ( isset( $_SERVER["HTTPS"] ) && $_SERVER["HTTPS"] == "on" ) { $pageURL .= "s"; }
+		$pageURL .= "://";
+		if ( $_SERVER["SERVER_PORT"] != "80" ) {
+			$pageURL .= $_SERVER["SERVER_NAME"] . ":" . $_SERVER["SERVER_PORT"] . $_SERVER["REQUEST_URI"];
+		} else {
+			$pageURL .= $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"];
+		}
+		if ( strpos( $pageURL, "?") === false ) {
+			$pageURL .= "?";
+		} else {
+			$pageURL .= "&";
+		}
+		$pageURL = htmlspecialchars( $pageURL );
 		if ( $bugs_page != "" ) {
 			$r .= sprintf ( __( '<a href="%s">Bugs</a>' ), $bugs_page );
 		}
