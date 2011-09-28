@@ -2,22 +2,22 @@
 /*
 Plugin Name: Sitewide newsletters
 Description: Allows site administrators to send a newsletter to all users
-Version: 0.3.2
+Version: 0.4
 Author: Chris Taylor
 Author URI: http://www.stillbreathing.co.uk
 Plugin URI: http://www.stillbreathing.co.uk/wordpress/sitewide-newsletter/
 */
 // when the admin menu is built
-add_action('admin_menu', 'sitewide_newsletters_add_admin');
+if (defined('WP_ALLOW_MULTISITE') && WP_ALLOW_MULTISITE) {
+	add_action('network_admin_menu', 'sitewide_newsletters_add_admin');
+} else {
+	add_action('admin_menu', 'sitewide_newsletters_add_admin');
+}
 
 // add the admin newsletters button
 function sitewide_newsletters_add_admin() {
 	global $current_user;
-	if (version_compare(get_bloginfo('version'), "3") >= 0)	{
-		add_submenu_page('ms-admin.php', 'Sitewide newsletters', 'Sitewide newsletters', 'edit_users', 'sitewide_newsletters', 'sitewide_newsletters');
-	} else {
-		add_submenu_page('wpmu-admin.php', 'Sitewide newsletters', 'Sitewide newsletters', 'edit_users', 'sitewide_newsletters', 'sitewide_newsletters');
-	}
+	add_submenu_page('users.php', 'Sitewide newsletters', 'Sitewide newsletters', 'edit_users', 'sitewide_newsletters', 'sitewide_newsletters');
 }
 
 // build the newsletters form
@@ -27,12 +27,7 @@ function sitewide_newsletters()
 	$users = $wpdb->get_var( "select count(user_email) from ".$wpdb->users." where user_activation_key = '' and spam = 0 and deleted = 0" );
 	
 	$message = "";
-	
-	$wpmums = "wpmu";
-	if (version_compare(get_bloginfo('version'), "3") >= 0)	{
-			$wpmums = "ms";
-	}
-	
+
 	// if sending a newsletter
 	if ( @$_POST["newsletter"] != "" && @$_POST["subject"] != "" && @$_POST["fromname"] != "" && @$_POST["fromemail"] != "" )
 	{
@@ -116,7 +111,7 @@ function sitewide_newsletters()
 	
 	<p>Enter your newsletter below which will be emailed to ' . $users . ' users.</p>
 	
-	<form action="'.$wpmums.'-admin.php?page=sitewide_newsletters" method="post">
+	<form action="users.php?page=sitewide_newsletters" method="post">
 	
 		<fieldset>
 		
