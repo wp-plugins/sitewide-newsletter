@@ -24,7 +24,12 @@ function sitewide_newsletters_add_admin() {
 function sitewide_newsletters()
 {
 	global $current_user, $wpdb;
-	$users = $wpdb->get_var( "select count(user_email) from ".$wpdb->users." where user_activation_key = '' and spam = 0 and deleted = 0" );
+	$query_fields = array( 'fields' => array( 'user_login', 'user_email' ) );
+	if ( array_key_exists( "role", $_POST ) && trim( $_POST["role"] ) != "" ) {
+		$query_fields = array( 'fields' => array( 'user_login', 'user_email' ), 'role' => trim( $_POST["role"] ) );
+	}
+	$user_query = new WP_User_Query( $query_fields );
+	$users = $user_query->get_total();
 	
 	$message = "";
 
@@ -46,9 +51,10 @@ function sitewide_newsletters()
 			if (@$_POST["test"] == "")
 			{
 			
-				$emails = $wpdb->get_results( "select user_email from ".$wpdb->users." where user_activation_key = '' and spam = 0 and deleted = 0" );
+				$user_query = new WP_User_Query( $query_fields );
+				$emails = $user_query->get_results();
 			
-				foreach ($emails as $email)
+				foreach ( $emails as $email )
 				{
 					try {
 				
@@ -57,7 +63,11 @@ function sitewide_newsletters()
 						{
 							$sent++;
 						} else {
-							$failed .= $e . "\r\n";
+							if ( trim( $e ) == "" ) {
+								$failed .= "No email address for user " . $email->user_login . "\r\n";
+							} else {
+								$failed .= $e . "\r\n";
+							}
 						}
 					
 					} catch (Exception $e) {
@@ -90,7 +100,7 @@ function sitewide_newsletters()
 			$message = "<p>Your message has been sent to " . $sent . " email addresses (" . $users . " users in total).</p>";
 			if ($failed != "")
 			{
-				$message .= '<p>Failed addresses:</p><p><textarea cols="30" rows="12">' . $failed . '</textarea></p>';
+				$message .= '<p>Failed addresses:</p><p><textarea cols="30" rows="12" style="width: 100%">' . $failed . '</textarea></p>';
 			}
 			
 		} catch (Exception $e) {
@@ -124,6 +134,18 @@ function sitewide_newsletters()
 		<p><label for="subject" style="float: left;width: 15%;">Subject</label><input type="text" name="subject" id="subject" style="width: 80%" /></p>
 			
 		<p><label for="newsletter" style="float: left;width: 15%;">Newsletter</label><textarea name="newsletter" id="newsletter" cols="30" rows="6" style="width: 80%"></textarea></p>
+		
+		<p><label for="role" style="float: left;width: 15%">Role</label><select name="role" id="role">
+			<option value="">All</option>
+		';
+		$roles = get_editable_roles();
+		foreach( $roles as $role ) {
+			print '
+			<option value="' . $role["name"] . '">' . $role["name"] . '</option>
+			';
+		}
+		print '
+		</select> Send this newsletter to users with just one role, or to all users</p>
 		
 		<p><label for="subject" style="float: left;width: 15%;">Test newsletter</label><input type="checkbox" name="test" id="test" /> This will just send the newsletter to ' . get_site_option("admin_email") . '</p>
 		
